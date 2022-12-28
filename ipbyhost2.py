@@ -1,50 +1,47 @@
 import argparse
 import socket
 
-# Define a function to resolve the IP addresses for a list of domain names
-def get_ip_addresses(domains):
-    # Create a list to store the results
-    results = []
-    # Iterate over the list of domain names
-    for domain in domains:
-        # Try to resolve the IP address for the domain name
-        try:
-            ip = socket.gethostbyname(domain)
-            # Add the domain name and IP address to the results list
-            results.append((domain, ip))
-        except socket.gaierror:
-            # If the domain name could not be resolved, add an error message to the results list
-            results.append((domain, 'ERROR'))
-    return results
+def get_ip_address(domain_name):
+  return socket.gethostbyname(domain_name)
 
-# Create a parser object to handle command-line arguments
-parser = argparse.ArgumentParser(description='Resolve IP addresses for a list of domain names')
+def main():
+  # Parse command-line arguments
+  parser = argparse.ArgumentParser()
+  parser.add_argument("-f", "--file", help="file containing a list of domain names, one per line")
+  parser.add_argument("-d", "--domains", nargs="+", help="list of domain names")
+  parser.add_argument("-o", "--output", help="output file to save the results")
+  args = parser.parse_args()
 
-# Add arguments to the parser
-parser.add_argument('-f', '--file', help='a file containing a list of domain names, one per line')
-parser.add_argument('-d', '--domains', nargs='+', help='a list of domain names')
+  # Get domain names from either the file or the command-line argument
+  domain_names = []
+  if args.file:
+    # Read domain names from the file
+    with open(args.file, "r") as f:
+      for line in f:
+        domain_names.append(line.strip())
+  elif args.domains:
+    # Get domain names from the command-line argument
+    domain_names = args.domains
 
-# Parse the command-line arguments
-args = parser.parse_args()
+  # Get the IP addresses for each domain name
+  results = {}
+  for domain_name in domain_names:
+    try:
+      ip_address = get_ip_address(domain_name)
+      results[domain_name] = ip_address
+    except socket.gaierror:
+      # domain_name could not be resolved
+      pass
 
-# Check if the user specified a file or a list of domain names
-if args.file:
-    # Read in the list of domain names from the specified file
-    with open(args.file, 'r') as f:
-        domains = f.read().splitlines()
-else:
-    # Use the list of domain names provided as an argument
-    domains = args.domains
+  # Print the results
+  for domain_name, ip_address in results.items():
+    print(f"{domain_name}: {ip_address}")
 
-# Resolve the IP addresses for the list of domain names
-results = get_ip_addresses(domains)
+  # Save the results to the output file, if specified
+  if args.output:
+    with open(args.output, "w") as f:
+      for domain_name, ip_address in results.items():
+        f.write(f"{domain_name}: {ip_address}\n")
 
-# Open the output file for writing
-with open('iplist.txt', 'w') as f:
-    # Iterate over the results and write them to the output file
-    for domain, ip in results:
-        f.write(f'{domain},{ip}\n')
-
-# Print the results to the console
-for domain, ip in results:
-    print(f'{domain}: {ip}')
+if __name__ == "__main__":
+  main()
